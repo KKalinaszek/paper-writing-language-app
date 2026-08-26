@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Language Learning Paper Writing App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Language Learning Paper Writing App</h1>
+      <p class="text-gray-600 text-lg">Bridge digital prompts with physical paper writing</p>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left Column: Prompt & Instructions -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow-md p-6 sticky top-8">
+          <h2 class="text-xl font-semibold text-gray-800 mb-4">Target Prompt</h2>
+          
+          <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+            <p class="text-2xl font-mono text-gray-800 leading-relaxed" id="targetPrompt">
+              "The quick brown fox jumps over the lazy dog."
+            </p>
+          </div>
+
+          <div class="space-y-4">
+            <div class="bg-gray-50 rounded-lg p-4">
+              <h3 class="font-semibold text-gray-700 mb-2">📝 Instructions</h3>
+              <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                <li>Read the prompt above carefully</li>
+                <li>Write it exactly on physical paper</li>
+                <li>Hold your paper to the camera</li>
+                <li>Click "Capture & Scan" button</li>
+                <li>Review feedback and corrections</li>
+              </ol>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h3 class="font-semibold text-amber-900 mb-2">💡 Tips</h3>
+              <ul class="text-sm text-amber-800 space-y-1">
+                <li>• Use dark pen on white paper</li>
+                <li>• Ensure good lighting</li>
+                <li>• Keep paper flat and straight</li>
+                <li>• Fill most of the frame</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Column: Camera & Controls -->
+      <div class="lg:col-span-2">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <!-- Camera Feed Section -->
+          <div class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Camera Feed</h2>
+            
+            <div class="relative bg-black rounded-lg overflow-hidden mb-4">
+              <video 
+                id="webcam" 
+                autoplay 
+                playsinline 
+                class="w-full aspect-video bg-black"
+              ></video>
+              
+              <!-- Alignment Guide Overlay -->
+              <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute inset-8 border-2 border-dashed border-green-400 opacity-30 rounded"></div>
+                <div class="absolute top-1/4 left-1/4 right-1/4 h-px bg-green-400 opacity-20"></div>
+                <div class="absolute bottom-1/4 left-1/4 right-1/4 h-px bg-green-400 opacity-20"></div>
+              </div>
+
+              <div id="cameraStatus" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 text-white">
+                <div class="text-center">
+                  <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-blue-500 mx-auto mb-4"></div>
+                  <p>Initializing camera...</p>
+                </div>
+              </div>
+            </div>
+
+            <canvas id="canvas" style="display: none;"></canvas>
+
+            <!-- Control Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button 
+                id="snapBtn"
+                disabled
+                class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Capture & Scan Paper
+              </button>
+              
+              <button 
+                id="resetBtn"
+                class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- Processing Status -->
+          <div id="processingSection" class="hidden mb-6">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="flex items-center gap-3">
+                <div class="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                <span id="processingStatus" class="text-blue-800 font-medium">Processing handwriting with OCR...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- OCR Results Section -->
+          <div class="space-y-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800 mb-2">OCR Result</h3>
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 min-h-24">
+                <p id="ocrResult" class="text-gray-600 font-mono whitespace-pre-wrap">
+                  Waiting for capture...
+                </p>
+              </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div id="feedbackSection" class="hidden">
+              <h3 class="text-lg font-semibold text-gray-800 mb-2">Feedback & Corrections</h3>
+              
+              <!-- Accuracy Score -->
+              <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="font-semibold text-gray-700">Accuracy Score</span>
+                  <span id="accuracyScore" class="text-2xl font-bold text-blue-600">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div id="accuracyBar" class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+              </div>
+
+              <!-- Character-by-Character Comparison -->
+              <div class="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-700 mb-3">Character-by-Character Comparison</h4>
+                <div class="bg-gray-50 p-3 rounded mb-3">
+                  <p class="text-sm font-semibold text-gray-600 mb-2">Expected:</p>
+                  <p id="expectedText" class="font-mono text-gray-800 text-sm break-words"></p>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded">
+                  <p class="text-sm font-semibold text-gray-600 mb-2">Your Writing:</p>
+                  <p id="comparisonText" class="font-mono text-sm break-words leading-relaxed"></p>
+                </div>
+              </div>
+
+              <!-- Error Summary -->
+              <div id="errorSummary" class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 hidden">
+                <h4 class="font-semibold text-red-900 mb-2">Errors Found</h4>
+                <ul id="errorList" class="space-y-2 text-sm text-red-800">
+                  <!-- Errors will be populated here -->
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('canvas');
+    const snapBtn = document.getElementById('snapBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const ocrResult = document.getElementById('ocrResult');
+    const targetPrompt = document.getElementById('targetPrompt');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const processingSection = document.getElementById('processingSection');
+    const processingStatus = document.getElementById('processingStatus');
+    const feedbackSection = document.getElementById('feedbackSection');
+    const accuracyScore = document.getElementById('accuracyScore');
+    const accuracyBar = document.getElementById('accuracyBar');
+    const expectedText = document.getElementById('expectedText');
+    const comparisonText = document.getElementById('comparisonText');
+    const errorSummary = document.getElementById('errorSummary');
+    const errorList = document.getElementById('errorList');
+
+    // Initialize Camera
+    async function initializeCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          cameraStatus.style.display = 'none';
+          snapBtn.disabled = false;
+        };
+      } catch (err) {
+        cameraStatus.innerHTML = `
+          <div class="text-center text-red-400">
+            <p class="mb-2">❌ Camera access denied</p>
+            <p class="text-sm">Please enable camera permissions in your browser settings</p>
+          </div>
+        `;
+        console.error('Camera error:', err);
+      }
+    }
+
+    // Capture Image and Run OCR
+    snapBtn.addEventListener('click', async () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+
+      processingSection.classList.remove('hidden');
+      feedbackSection.classList.add('hidden');
+      ocrResult.innerText = 'Processing handwriting...';
+      snapBtn.disabled = true;
+
+      try {
+        processingStatus.innerText = 'Running OCR on your handwriting...';
+        
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        const cleanedText = text.trim();
+        
+        ocrResult.innerText = cleanedText;
+        
+        // Perform diffing and feedback
+        performDiffingAndFeedback(cleanedText);
+        
+        processingSection.classList.add('hidden');
+        feedbackSection.classList.remove('hidden');
+      } catch (err) {
+        ocrResult.innerText = `Error during OCR: ${err.message}`;
+        processingSection.classList.add('hidden');
+        console.error('OCR error:', err);
+      } finally {
+        snapBtn.disabled = false;
+      }
+    });
+
+    // Diffing and Feedback Logic
+    function performDiffingAndFeedback(ocrText) {
+      const expectedPrompt = targetPrompt.innerText.replace(/[""]/g, '').trim();
+      const userText = ocrText.toUpperCase();
+      const expected = expectedPrompt.toUpperCase();
+
+      // Calculate similarity
+      const similarity = calculateSimilarity(expected, userText);
+      const accuracy = Math.round(similarity * 100);
+      
+      accuracyScore.innerText = accuracy + '%';
+      accuracyBar.style.width = accuracy + '%';
+
+      // Update color based on accuracy
+      if (accuracy >= 90) {
+        accuracyBar.className = 'bg-gradient-to-r from-green-500 to-emerald-600 h-full transition-all duration-300';
+      } else if (accuracy >= 70) {
+        accuracyBar.className = 'bg-gradient-to-r from-yellow-500 to-amber-600 h-full transition-all duration-300';
+      } else {
+        accuracyBar.className = 'bg-gradient-to-r from-red-500 to-pink-600 h-full transition-all duration-300';
+      }
+
+      // Display expected vs actual
+      expectedText.innerText = expectedPrompt;
+      
+      // Perform character-by-character comparison
+      const comparison = createComparison(expected, userText);
+      comparisonText.innerHTML = comparison;
+
+      // Generate error summary
+      generateErrorSummary(expected, userText);
+    }
+
+    // Calculate Levenshtein Similarity
+    function calculateSimilarity(str1, str2) {
+      const longer = str1.length > str2.length ? str1 : str2;
+      const shorter = str1.length > str2.length ? str2 : str1;
+
+      if (longer.length === 0) return 1.0;
+
+      const editDistance = getEditDistance(longer, shorter);
+      return (longer.length - editDistance) / longer.length;
+    }
+
+    // Levenshtein Distance
+    function getEditDistance(s1, s2) {
+      const costs = [];
+      for (let i = 0; i <= s1.length; i++) {
+        let lastValue = i;
+        for (let j = 0; j <= s2.length; j++) {
+          if (i === 0) {
+            costs[j] = j;
+          } else if (j > 0) {
+            let newValue = costs[j - 1];
+            if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+              newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+            }
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+        if (i > 0) costs[s2.length] = lastValue;
+      }
+      return costs[s2.length];
+    }
+
+    // Create Character-by-Character Comparison
+    function createComparison(expected, actual) {
+      let html = '';
+      const maxLen = Math.max(expected.length, actual.length);
+
+      for (let i = 0; i < maxLen; i++) {
+        const expChar = expected[i] || '';
+        const actChar = actual[i] || '';
+
+        if (expChar === actChar) {
+          html += `<span class="bg-green-100 text-green-900">${expChar || '·'}</span>`;
+        } else if (!expChar) {
+          html += `<span class="bg-red-100 text-red-900 line-through">${actChar}</span>`;
+        } else if (!actChar) {
+          html += `<span class="bg-yellow-100 text-yellow-900 border-b-2 border-yellow-500">_</span>`;
+        } else {
+          html += `<span class="bg-red-100 text-red-900">${actChar}</span>`;
+        }
+      }
+
+      return html;
+    }
+
+    // Generate Error Summary
+    function generateErrorSummary(expected, actual) {
+      const errors = [];
+      const maxLen = Math.max(expected.length, actual.length);
+
+      for (let i = 0; i < maxLen; i++) {
+        const expChar = expected[i] || '';
+        const actChar = actual[i] || '';
+
+        if (expChar !== actChar) {
+          if (!expChar) {
+            errors.push(`Extra character at position ${i + 1}: "${actChar}"`);
+          } else if (!actChar) {
+            errors.push(`Missing character at position ${i + 1}: "${expChar}"`);
+          } else {
+            errors.push(`Character mismatch at position ${i + 1}: expected "${expChar}", got "${actChar}"`);
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        errorSummary.classList.remove('hidden');
+        errorList.innerHTML = errors
+          .slice(0, 10)
+          .map(err => `<li>• ${err}</li>`)
+          .join('');
+        
+        if (errors.length > 10) {
+          errorList.innerHTML += `<li class="text-gray-600 italic">... and ${errors.length - 10} more error(s)</li>`;
+        }
+      } else {
+        errorSummary.classList.add('hidden');
+      }
+    }
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+      ocrResult.innerText = 'Waiting for capture...';
+      feedbackSection.classList.add('hidden');
+      processingSection.classList.add('hidden');
+      snapBtn.disabled = false;
+    });
+
+    // Initialize on page load
+    window.addEventListener('load', initializeCamera);
+  </script>
+</body>
+</html>
