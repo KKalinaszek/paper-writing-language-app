@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR Testing Tool</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-blue-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">OCR Testing & Debugging Tool</h1>
+      <p class="text-gray-600 text-lg">Test Tesseract.js performance on handwritten images</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Upload Section -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Test Image</h2>
+        
+        <div class="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center cursor-pointer hover:bg-purple-50 transition" id="dropZone">
+          <svg class="w-16 h-16 mx-auto text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <p class="text-gray-600 text-lg mb-2">Drag and drop image here</p>
+          <p class="text-gray-500 text-sm mb-4">or click to select</p>
+          <input type="file" id="fileInput" accept="image/*" class="hidden">
+          <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 rounded-lg transition">
+            Choose File
+          </button>
+        </div>
+
+        <div id="imagePreview" class="mt-6 hidden">
+          <h3 class="font-semibold text-gray-700 mb-2">Preview:</h3>
+          <img id="previewImg" src="" alt="Preview" class="max-w-full rounded-lg shadow">
+        </div>
+      </div>
+
+      <!-- Expected Text Section -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Expected Text</h2>
+        <textarea 
+          id="expectedText" 
+          placeholder="Enter the text that should be in the image..." 
+          class="w-full h-40 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none font-mono text-sm"
+        >The quick brown fox jumps over the lazy dog.</textarea>
+        
+        <button 
+          id="runOcrBtn"
+          class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 11a1 1 0 11-2 0 1 1 0 012 0zm6 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+          </svg>
+          Run OCR Test
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="mt-6 hidden">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">Test Results</h2>
+
+        <!-- Processing Status -->
+        <div id="processingStatus" class="hidden mb-6">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-center gap-3">
+              <div class="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+              <span class="text-blue-800 font-medium">Processing with OCR...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw OCR Output -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Raw OCR Output</h3>
+          <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 min-h-24">
+            <p id="rawOcr" class="text-gray-800 font-mono text-sm whitespace-pre-wrap break-words"></p>
+          </div>
+        </div>
+
+        <!-- Accuracy Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-gray-600 font-semibold mb-1">Accuracy Score</p>
+            <p id="accuracyMetric" class="text-3xl font-bold text-blue-600">0%</p>
+          </div>
+          
+          <div class="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-lg p-4">
+            <p class="text-sm text-gray-600 font-semibold mb-1">Edit Distance</p>
+            <p id="editDistance" class="text-3xl font-bold text-yellow-600">0</p>
+          </div>
+          
+          <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+            <p class="text-sm text-gray-600 font-semibold mb-1">Character Errors</p>
+            <p id="charErrors" class="text-3xl font-bold text-purple-600">0</p>
+          </div>
+        </div>
+
+        <!-- Character-by-Character Comparison -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Character-by-Character Comparison</h3>
+          <div class="bg-gray-50 border border-gray-300 rounded-lg p-4">
+            <div class="mb-4">
+              <p class="text-sm font-semibold text-gray-600 mb-2">Expected:</p>
+              <p id="compExpected" class="font-mono text-gray-800 text-sm break-words p-2 bg-white rounded border border-gray-200"></p>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-600 mb-2">OCR Output (with highlighting):</p>
+              <p id="compActual" class="font-mono text-sm break-words p-2 bg-white rounded border border-gray-200 leading-relaxed"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error Analysis -->
+        <div id="errorAnalysis" class="mb-6 hidden">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">Detailed Error Analysis</h3>
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <ul id="errorList" class="space-y-2 text-sm text-red-800">
+              <!-- Errors will be populated here -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Confidence Debugging -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">OCR Confidence</h3>
+          <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+            <p id="confidence" class="text-indigo-900 font-mono text-sm">
+              Confidence data will appear here after OCR processing
+            </p>
+          </div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 rounded p-4">
+          <h4 class="font-semibold text-blue-900 mb-2">💡 Optimization Recommendations</h4>
+          <ul id="recommendations" class="text-sm text-blue-800 space-y-1 list-disc list-inside">
+            <li>Process image after OCR test for optimization tips</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const expectedTextArea = document.getElementById('expectedText');
+    const runOcrBtn = document.getElementById('runOcrBtn');
+    const resultsSection = document.getElementById('resultsSection');
+    const processingStatus = document.getElementById('processingStatus');
+    const rawOcr = document.getElementById('rawOcr');
+    const accuracyMetric = document.getElementById('accuracyMetric');
+    const editDistance = document.getElementById('editDistance');
+    const charErrors = document.getElementById('charErrors');
+    const compExpected = document.getElementById('compExpected');
+    const compActual = document.getElementById('compActual');
+    const errorAnalysis = document.getElementById('errorAnalysis');
+    const errorList = document.getElementById('errorList');
+    const confidence = document.getElementById('confidence');
+    const recommendations = document.getElementById('recommendations');
+
+    let selectedImage = null;
+
+    // File input handling
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) loadImage(file);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('bg-purple-50');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('bg-purple-50');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('bg-purple-50');
+      const file = e.dataTransfer.files[0];
+      if (file) loadImage(file);
+    });
+
+    function loadImage(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedImage = e.target.result;
+        previewImg.src = selectedImage;
+        imagePreview.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // OCR Testing
+    runOcrBtn.addEventListener('click', async () => {
+      if (!selectedImage) {
+        alert('Please select an image first');
+        return;
+      }
+
+      const expectedText = expectedTextArea.value.trim();
+      if (!expectedText) {
+        alert('Please enter expected text');
+        return;
+      }
+
+      resultsSection.classList.remove('hidden');
+      processingStatus.classList.remove('hidden');
+      rawOcr.innerText = 'Processing...';
+
+      try {
+        // Load and process image
+        const img = new Image();
+        img.src = selectedImage;
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          try {
+            // Run Tesseract
+            const result = await Tesseract.recognize(canvas, 'eng');
+            const ocrText = result.data.text.trim();
+            const ocrConfidence = result.data.confidence;
+
+            processingStatus.classList.add('hidden');
+
+            // Display raw output
+            rawOcr.innerText = ocrText;
+
+            // Calculate metrics
+            const expected = expectedText.toUpperCase();
+            const actual = ocrText.toUpperCase();
+
+            const similarity = calculateSimilarity(expected, actual);
+            const distance = getEditDistance(expected, actual);
+            const errors = countErrors(expected, actual);
+
+            accuracyMetric.innerText = Math.round(similarity * 100) + '%';
+            editDistance.innerText = distance;
+            charErrors.innerText = errors;
+
+            // Update accuracy bar color
+            const accuracy = Math.round(similarity * 100);
+            if (accuracy >= 90) {
+              accuracyMetric.className = 'text-3xl font-bold text-green-600';
+            } else if (accuracy >= 70) {
+              accuracyMetric.className = 'text-3xl font-bold text-yellow-600';
+            } else {
+              accuracyMetric.className = 'text-3xl font-bold text-red-600';
+            }
+
+            // Character comparison
+            compExpected.innerText = expectedText;
+            compActual.innerHTML = createComparison(expected, actual);
+
+            // Error analysis
+            generateErrorAnalysis(expected, actual);
+
+            // Confidence info
+            confidence.innerText = `OCR Confidence: ${(ocrConfidence * 100).toFixed(2)}%\n\nCharacter Accuracy:\n- Expected: ${expected.length} chars\n- Detected: ${actual.length} chars\n- Matched: ${expected.length - errors} chars`;
+
+            // Recommendations
+            generateRecommendations(similarity, ocrConfidence, expected, actual);
+
+          } catch (err) {
+            rawOcr.innerText = `Error: ${err.message}`;
+            processingStatus.classList.add('hidden');
+            console.error('OCR error:', err);
+          }
+        };
+      } catch (err) {
+        rawOcr.innerText = `Error: ${err.message}`;
+        processingStatus.classList.add('hidden');
+        console.error('Error:', err);
+      }
+    });
+
+    // Utility Functions
+    function calculateSimilarity(str1, str2) {
+      const longer = str1.length > str2.length ? str1 : str2;
+      const shorter = str1.length > str2.length ? str2 : str1;
+      if (longer.length === 0) return 1.0;
+      const distance = getEditDistance(longer, shorter);
+      return (longer.length - distance) / longer.length;
+    }
+
+    function getEditDistance(s1, s2) {
+      const costs = [];
+      for (let i = 0; i <= s1.length; i++) {
+        let lastValue = i;
+        for (let j = 0; j <= s2.length; j++) {
+          if (i === 0) {
+            costs[j] = j;
+          } else if (j > 0) {
+            let newValue = costs[j - 1];
+            if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+              newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+            }
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+        if (i > 0) costs[s2.length] = lastValue;
+      }
+      return costs[s2.length];
+    }
+
+    function countErrors(expected, actual) {
+      let errors = 0;
+      const maxLen = Math.max(expected.length, actual.length);
+      for (let i = 0; i < maxLen; i++) {
+        if ((expected[i] || '') !== (actual[i] || '')) errors++;
+      }
+      return errors;
+    }
+
+    function createComparison(expected, actual) {
+      let html = '';
+      const maxLen = Math.max(expected.length, actual.length);
+
+      for (let i = 0; i < maxLen; i++) {
+        const expChar = expected[i] || '';
+        const actChar = actual[i] || '';
+
+        if (expChar === actChar) {
+          html += `<span class="bg-green-200 text-green-900 px-1">${expChar || '·'}</span>`;
+        } else if (!expChar) {
+          html += `<span class="bg-red-200 text-red-900 px-1 line-through">${actChar}</span>`;
+        } else if (!actChar) {
+          html += `<span class="bg-yellow-200 text-yellow-900 px-1 border-b-2 border-yellow-500">_</span>`;
+        } else {
+          html += `<span class="bg-red-200 text-red-900 px-1">${actChar}</span>`;
+        }
+      }
+      return html;
+    }
+
+    function generateErrorAnalysis(expected, actual) {
+      const errors = [];
+      const maxLen = Math.max(expected.length, actual.length);
+
+      for (let i = 0; i < maxLen; i++) {
+        const expChar = expected[i] || '';
+        const actChar = actual[i] || '';
+
+        if (expChar !== actChar) {
+          if (!expChar) {
+            errors.push(`Extra character at position ${i + 1}: "${actChar}"`);
+          } else if (!actChar) {
+            errors.push(`Missing character at position ${i + 1}: "${expChar}"`);
+          } else {
+            errors.push(`Mismatch at position ${i + 1}: expected "${expChar}", got "${actChar}"`);
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        errorAnalysis.classList.remove('hidden');
+        errorList.innerHTML = errors
+          .slice(0, 15)
+          .map(err => `<li>• ${err}</li>`)
+          .join('');
+        if (errors.length > 15) {
+          errorList.innerHTML += `<li class="font-semibold">... and ${errors.length - 15} more errors</li>`;
+        }
+      } else {
+        errorAnalysis.classList.add('hidden');
+      }
+    }
+
+    function generateRecommendations(similarity, ocrConfidence, expected, actual) {
+      const recs = [];
+
+      if (similarity < 0.7) {
+        recs.push('❌ Accuracy below 70% - Consider improving image quality (lighting, contrast, angle)');
+      } else if (similarity < 0.9) {
+        recs.push('⚠️ Accuracy below 90% - Image quality could be improved');
+      } else {
+        recs.push('✅ Excellent accuracy! OCR is working well');
+      }
+
+      if (ocrConfidence < 0.5) {
+        recs.push('⚠️ Low OCR confidence - Tesseract is uncertain about the text');
+      }
+
+      if (actual.length < expected.length * 0.8) {
+        recs.push('📷 Image may be cut off or too small - Ensure full text is visible');
+      }
+
+      if (actual.length > expected.length * 1.2) {
+        recs.push('🔍 OCR detected extra text - Check for background noise or shadows');
+      }
+
+      if (/\d/.test(actual) && !/\d/.test(expected)) {
+        recs.push('🔢 OCR mistaking letters for numbers - Common issue with O/0, l/1, S/5');
+      }
+
+      recommendations.innerHTML = recs.map(rec => `<li>${rec}</li>`).join('');
+    }
+  </script>
+</body>
+</html>
