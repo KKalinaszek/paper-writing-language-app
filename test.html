@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OCR Testing Tool</title>
+  <title>OCR Testing Tool - Enhanced</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script async src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -11,7 +11,7 @@
   <div class="container mx-auto px-4 py-8">
     <div class="text-center mb-8">
       <h1 class="text-4xl font-bold text-gray-800 mb-2">OCR Testing & Debugging Tool</h1>
-      <p class="text-gray-600 text-lg">Test Tesseract.js performance on handwritten images</p>
+      <p class="text-gray-600 text-lg">Test Tesseract.js with advanced image preprocessing</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -37,24 +37,67 @@
         </div>
       </div>
 
-      <!-- Expected Text Section -->
+      <!-- Settings Section -->
       <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Expected Text</h2>
-        <textarea 
-          id="expectedText" 
-          placeholder="Enter the text that should be in the image..." 
-          class="w-full h-40 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none font-mono text-sm"
-        >The quick brown fox jumps over the lazy dog.</textarea>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">OCR Settings</h2>
         
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Expected Text</label>
+            <textarea 
+              id="expectedText" 
+              placeholder="Enter the text that should be in the image..." 
+              class="w-full h-24 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none font-mono text-sm"
+            >The quick brown fox jumps over the lazy dog.</textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Image Preprocessing</label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-2">
+                <input type="checkbox" id="enableContrast" checked class="rounded">
+                <span class="text-sm text-gray-700">Contrast Enhancement</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" id="enableBinarize" checked class="rounded">
+                <span class="text-sm text-gray-700">Binarization (B&W)</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="checkbox" id="enableDenoise" checked class="rounded">
+                <span class="text-sm text-gray-700">Noise Reduction</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <button 
           id="runOcrBtn"
-          class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
+          class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center gap-2"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 11a1 1 0 11-2 0 1 1 0 012 0zm6 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
           </svg>
           Run OCR Test
         </button>
+      </div>
+    </div>
+
+    <!-- Preprocessing Preview -->
+    <div id="preprocessSection" class="mt-6 bg-white rounded-lg shadow-md p-6 hidden">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Preprocessing Preview</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <p class="text-sm font-semibold text-gray-700 mb-2">Original</p>
+          <canvas id="originalCanvas" class="w-full border border-gray-300 rounded"></canvas>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-700 mb-2">After Contrast & Binarize</p>
+          <canvas id="processedCanvas" class="w-full border border-gray-300 rounded"></canvas>
+        </div>
+        <div>
+          <p class="text-sm font-semibold text-gray-700 mb-2">Final (Denoised)</p>
+          <canvas id="finalCanvas" class="w-full border border-gray-300 rounded"></canvas>
+        </div>
       </div>
     </div>
 
@@ -82,9 +125,9 @@
         </div>
 
         <!-- Accuracy Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-            <p class="text-sm text-gray-600 font-semibold mb-1">Accuracy Score</p>
+            <p class="text-sm text-gray-600 font-semibold mb-1">Accuracy</p>
             <p id="accuracyMetric" class="text-3xl font-bold text-blue-600">0%</p>
           </div>
           
@@ -94,8 +137,13 @@
           </div>
           
           <div class="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-            <p class="text-sm text-gray-600 font-semibold mb-1">Character Errors</p>
+            <p class="text-sm text-gray-600 font-semibold mb-1">Errors</p>
             <p id="charErrors" class="text-3xl font-bold text-purple-600">0</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
+            <p class="text-sm text-gray-600 font-semibold mb-1">Confidence</p>
+            <p id="confScore" class="text-3xl font-bold text-green-600">0%</p>
           </div>
         </div>
 
@@ -108,7 +156,7 @@
               <p id="compExpected" class="font-mono text-gray-800 text-sm break-words p-2 bg-white rounded border border-gray-200"></p>
             </div>
             <div>
-              <p class="text-sm font-semibold text-gray-600 mb-2">OCR Output (with highlighting):</p>
+              <p class="text-sm font-semibold text-gray-600 mb-2">OCR Output:</p>
               <p id="compActual" class="font-mono text-sm break-words p-2 bg-white rounded border border-gray-200 leading-relaxed"></p>
             </div>
           </div>
@@ -119,18 +167,7 @@
           <h3 class="text-lg font-semibold text-gray-800 mb-2">Detailed Error Analysis</h3>
           <div class="bg-red-50 border border-red-200 rounded-lg p-4">
             <ul id="errorList" class="space-y-2 text-sm text-red-800">
-              <!-- Errors will be populated here -->
             </ul>
-          </div>
-        </div>
-
-        <!-- Confidence Debugging -->
-        <div class="mb-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-2">OCR Confidence</h3>
-          <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-            <p id="confidence" class="text-indigo-900 font-mono text-sm">
-              Confidence data will appear here after OCR processing
-            </p>
           </div>
         </div>
 
@@ -159,12 +196,16 @@
     const accuracyMetric = document.getElementById('accuracyMetric');
     const editDistance = document.getElementById('editDistance');
     const charErrors = document.getElementById('charErrors');
+    const confScore = document.getElementById('confScore');
     const compExpected = document.getElementById('compExpected');
     const compActual = document.getElementById('compActual');
     const errorAnalysis = document.getElementById('errorAnalysis');
     const errorList = document.getElementById('errorList');
-    const confidence = document.getElementById('confidence');
     const recommendations = document.getElementById('recommendations');
+    const enableContrast = document.getElementById('enableContrast');
+    const enableBinarize = document.getElementById('enableBinarize');
+    const enableDenoise = document.getElementById('enableDenoise');
+    const preprocessSection = document.getElementById('preprocessSection');
 
     let selectedImage = null;
 
@@ -202,6 +243,95 @@
       reader.readAsDataURL(file);
     }
 
+    // Image Preprocessing Functions
+    function preprocessImage(canvas, options) {
+      let imgData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+      let data = imgData.data;
+
+      // Step 1: Convert to grayscale
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+
+      // Step 2: Contrast enhancement
+      if (options.contrast) {
+        const factor = 2.0; // Increased contrast
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, Math.max(0, (data[i] - 128) * factor + 128));
+        }
+      }
+
+      // Step 3: Binarization (convert to black and white)
+      if (options.binarize) {
+        let threshold = 128;
+        // Calculate Otsu's threshold for optimal binarization
+        let histogram = new Array(256).fill(0);
+        for (let i = 0; i < data.length; i += 4) {
+          histogram[data[i]]++;
+        }
+        
+        let sum = 0, sumB = 0, countB = 0, countF = 0;
+        for (let i = 0; i < 256; i++) {
+          sum += i * histogram[i];
+        }
+        
+        let maxVariance = 0;
+        for (let t = 0; t < 256; t++) {
+          countB += histogram[t];
+          if (countB === 0) continue;
+          
+          countF = data.length / 4 - countB;
+          if (countF === 0) break;
+          
+          sumB += t * histogram[t];
+          const meanB = sumB / countB;
+          const meanF = (sum - sumB) / countF;
+          const variance = countB * countF * Math.pow(meanB - meanF, 2);
+          
+          if (variance > maxVariance) {
+            maxVariance = variance;
+            threshold = t;
+          }
+        }
+        
+        for (let i = 0; i < data.length; i += 4) {
+          const val = data[i] < threshold ? 0 : 255;
+          data[i] = val;
+          data[i + 1] = val;
+          data[i + 2] = val;
+        }
+      }
+
+      // Step 4: Denoise (median filter)
+      if (options.denoise) {
+        const filtered = new Uint8ClampedArray(data);
+        const width = canvas.width;
+        for (let y = 1; y < canvas.height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            const idx = (y * width + x) * 4;
+            const neighbors = [];
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                neighbors.push(data[((y + dy) * width + (x + dx)) * 4]);
+              }
+            }
+            neighbors.sort((a, b) => a - b);
+            const median = neighbors[4];
+            filtered[idx] = median;
+            filtered[idx + 1] = median;
+            filtered[idx + 2] = median;
+          }
+        }
+        imgData.data.set(filtered);
+      }
+
+      canvas.getContext('2d').putImageData(imgData, 0, 0);
+      return canvas;
+    }
+
     // OCR Testing
     runOcrBtn.addEventListener('click', async () => {
       if (!selectedImage) {
@@ -220,7 +350,6 @@
       rawOcr.innerText = 'Processing...';
 
       try {
-        // Load and process image
         const img = new Image();
         img.src = selectedImage;
         img.onload = async () => {
@@ -230,15 +359,50 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
+          // Save original for preview
+          const originalCanvas = document.getElementById('originalCanvas');
+          originalCanvas.width = canvas.width;
+          originalCanvas.height = canvas.height;
+          originalCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+          // Apply preprocessing
+          const options = {
+            contrast: enableContrast.checked,
+            binarize: enableBinarize.checked,
+            denoise: enableDenoise.checked
+          };
+
+          if (enableContrast.checked || enableBinarize.checked || enableDenoise.checked) {
+            preprocessSection.classList.remove('hidden');
+          }
+
+          const processedCanvas = document.createElement('canvas');
+          processedCanvas.width = canvas.width;
+          processedCanvas.height = canvas.height;
+          processedCanvas.getContext('2d').drawImage(canvas, 0, 0);
+          preprocessImage(processedCanvas, options);
+
+          // Show processed preview
+          document.getElementById('processedCanvas').width = processedCanvas.width;
+          document.getElementById('processedCanvas').height = processedCanvas.height;
+          document.getElementById('processedCanvas').getContext('2d').drawImage(processedCanvas, 0, 0);
+
+          // Also show final version
+          document.getElementById('finalCanvas').width = processedCanvas.width;
+          document.getElementById('finalCanvas').height = processedCanvas.height;
+          document.getElementById('finalCanvas').getContext('2d').drawImage(processedCanvas, 0, 0);
+
           try {
-            // Run Tesseract
-            const result = await Tesseract.recognize(canvas, 'eng');
+            // Run Tesseract with optimized settings
+            const result = await Tesseract.recognize(processedCanvas, 'eng', {
+              logger: m => console.log(m)
+            });
+            
             const ocrText = result.data.text.trim();
-            const ocrConfidence = result.data.confidence;
+            const confidence = result.data.confidence / 100;
 
             processingStatus.classList.add('hidden');
 
-            // Display raw output
             rawOcr.innerText = ocrText;
 
             // Calculate metrics
@@ -252,8 +416,9 @@
             accuracyMetric.innerText = Math.round(similarity * 100) + '%';
             editDistance.innerText = distance;
             charErrors.innerText = errors;
+            confScore.innerText = Math.round(confidence * 100) + '%';
 
-            // Update accuracy bar color
+            // Update color
             const accuracy = Math.round(similarity * 100);
             if (accuracy >= 90) {
               accuracyMetric.className = 'text-3xl font-bold text-green-600';
@@ -263,18 +428,11 @@
               accuracyMetric.className = 'text-3xl font-bold text-red-600';
             }
 
-            // Character comparison
             compExpected.innerText = expectedText;
             compActual.innerHTML = createComparison(expected, actual);
 
-            // Error analysis
             generateErrorAnalysis(expected, actual);
-
-            // Confidence info
-            confidence.innerText = `OCR Confidence: ${(ocrConfidence * 100).toFixed(2)}%\n\nCharacter Accuracy:\n- Expected: ${expected.length} chars\n- Detected: ${actual.length} chars\n- Matched: ${expected.length - errors} chars`;
-
-            // Recommendations
-            generateRecommendations(similarity, ocrConfidence, expected, actual);
+            generateRecommendations(similarity, confidence, expected, actual);
 
           } catch (err) {
             rawOcr.innerText = `Error: ${err.message}`;
@@ -359,11 +517,11 @@
 
         if (expChar !== actChar) {
           if (!expChar) {
-            errors.push(`Extra character at position ${i + 1}: "${actChar}"`);
+            errors.push(`Extra: "${actChar}" at pos ${i + 1}`);
           } else if (!actChar) {
-            errors.push(`Missing character at position ${i + 1}: "${expChar}"`);
+            errors.push(`Missing: "${expChar}" at pos ${i + 1}`);
           } else {
-            errors.push(`Mismatch at position ${i + 1}: expected "${expChar}", got "${actChar}"`);
+            errors.push(`Mismatch at ${i + 1}: expected "${expChar}", got "${actChar}"`);
           }
         }
       }
@@ -371,43 +529,28 @@
       if (errors.length > 0) {
         errorAnalysis.classList.remove('hidden');
         errorList.innerHTML = errors
-          .slice(0, 15)
+          .slice(0, 20)
           .map(err => `<li>• ${err}</li>`)
           .join('');
-        if (errors.length > 15) {
-          errorList.innerHTML += `<li class="font-semibold">... and ${errors.length - 15} more errors</li>`;
-        }
       } else {
         errorAnalysis.classList.add('hidden');
       }
     }
 
-    function generateRecommendations(similarity, ocrConfidence, expected, actual) {
+    function generateRecommendations(similarity, confidence, expected, actual) {
       const recs = [];
 
       if (similarity < 0.7) {
-        recs.push('❌ Accuracy below 70% - Consider improving image quality (lighting, contrast, angle)');
+        recs.push('❌ Low accuracy - Try enabling binarization and contrast enhancement');
       } else if (similarity < 0.9) {
-        recs.push('⚠️ Accuracy below 90% - Image quality could be improved');
+        recs.push('⚠️ Below 90% - Image preprocessing may help');
       } else {
-        recs.push('✅ Excellent accuracy! OCR is working well');
+        recs.push('✅ Excellent accuracy!');
       }
 
-      if (ocrConfidence < 0.5) {
-        recs.push('⚠️ Low OCR confidence - Tesseract is uncertain about the text');
-      }
-
-      if (actual.length < expected.length * 0.8) {
-        recs.push('📷 Image may be cut off or too small - Ensure full text is visible');
-      }
-
-      if (actual.length > expected.length * 1.2) {
-        recs.push('🔍 OCR detected extra text - Check for background noise or shadows');
-      }
-
-      if (/\d/.test(actual) && !/\d/.test(expected)) {
-        recs.push('🔢 OCR mistaking letters for numbers - Common issue with O/0, l/1, S/5');
-      }
+      if (actual.includes('O') && expected.includes('0')) recs.push('🔢 Possible O/0 confusion');
+      if (actual.includes('l') && expected.includes('1')) recs.push('🔢 Possible l/1 confusion');
+      if (actual.length < expected.length * 0.8) recs.push('📷 Text may be cut off');
 
       recommendations.innerHTML = recs.map(rec => `<li>${rec}</li>`).join('');
     }
