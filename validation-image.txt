@@ -1,0 +1,8 @@
+This file serves as a marker for the validation test image.
+The actual image with handwritten text "The quick brown fox jumps over the lazy dog." 
+should be stored as validation-test.png in the repository root.
+
+Image details:
+- Expected text: "The quick brown fox jumps over the lazy dog."
+- Format: Handwritten on white paper
+- Used for: OCR validation and accuracy testing
